@@ -1,0 +1,102 @@
+name: Build KharjYar Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Auto-Verify & Patch Project Structure
+        run: |
+          if [ -d "KharjYar" ] && [ ! -f "settings.gradle.kts" ]; then
+            cp -r KharjYar/* .
+          fi
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "KharjYar"
+          include(":app", ":core", ":domain", ":data", ":presentation")
+          EOF
+          mkdir -p data/src/main/java/ir/kharjyar/data/di
+          if [ ! -f "data/src/main/java/ir/kharjyar/data/di/DatabaseModule.kt" ]; then
+            cat << 'EOF' > data/src/main/java/ir/kharjyar/data/di/DatabaseModule.kt
+          package ir.kharjyar.data.di
+          import android.content.Context
+          import androidx.room.Room
+          import dagger.Module
+          import dagger.Provides
+          import dagger.hilt.InstallIn
+          import dagger.hilt.android.qualifiers.ApplicationContext
+          import dagger.hilt.components.SingletonComponent
+          import ir.kharjyar.data.local.KharjYarDatabase
+          import javax.inject.Singleton
+          @Module
+          @InstallIn(SingletonComponent::class)
+          object DatabaseModule {
+              @Provides
+              @Singleton
+              fun provideKharjYarDatabase(@ApplicationContext context: Context): KharjYarDatabase =
+                  Room.databaseBuilder(context, KharjYarDatabase::class.java, KharjYarDatabase.DATABASE_NAME)
+                      .addMigrations(KharjYarDatabase.MIGRATION_1_2)
+                      .fallbackToDestructiveMigration()
+                      .build()
+          }
+          EOF
+          fi
+          if [ -f "domain/src/main/java/ir/kharjyar/domain/usecase/SmartInsightUseCase.kt" ]; then
+            sed -i '/javax.inject.Inject/d' domain/src/main/java/ir/kharjyar/domain/usecase/SmartInsightUseCase.kt
+            sed -i 's/@Inject constructor()/ /g' domain/src/main/java/ir/kharjyar/domain/usecase/SmartInsightUseCase.kt
+          fi
+          if [ -f "data/src/main/java/ir/kharjyar/data/local/KharjYarDatabase.kt" ]; then
+            sed -i 's/exportSchema = true/exportSchema = false/g' data/src/main/java/ir/kharjyar/data/local/KharjYarDatabase.kt
+          fi
+          if [ -f "core/src/main/java/ir/kharjyar/core/backup/EncryptedBackupManager.kt" ]; then
+            grep -v "safeNote" core/src/main/java/ir/kharjyar/core/backup/EncryptedBackupManager.kt > /tmp/ebm.kt || true
+          fi
+          if [ -f "app/src/main/java/ir/kharjyar/app/widget/KharjYarGlanceWidget.kt" ]; then
+            sed -i "s/import androidx.glance.appwidget.action.actionStartActivity/import androidx.glance.action.actionStartActivity/g" app/src/main/java/ir/kharjyar/app/widget/KharjYarGlanceWidget.kt
+            sed -i "s/actionStartActivity(quickExpenseIntent)/actionStartActivity<MainActivity>()/g" app/src/main/java/ir/kharjyar/app/widget/KharjYarGlanceWidget.kt
+          fi
+
+      - name: Build Signed Installable APK (Debug)
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK for Download
+        run: |
+          mkdir -p output_apk
+          cp app/build/outputs/apk/debug/*.apk output_apk/KharjYar-v1.0-Installable.apk
+
+      - name: Upload KharjYar Installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KharjYar-Installable-APK
+          path: output_apk/KharjYar-v1.0-Installable.apk
