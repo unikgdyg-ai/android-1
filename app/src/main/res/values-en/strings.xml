@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KharjYar</string>
+    <string name="workspace_personal">Personal</string>
+    <string name="workspace_business">Business</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_budget">Budget</string>
+    <string name="nav_more">More</string>
+    <string name="action_new_transaction">New Transaction</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_retry">Retry</string>
+    <string name="shortcut_new_expense_short">Add Expense</string>
+    <string name="shortcut_new_expense_long">Quickly add a new expense</string>
+    <string name="total_balance">Total Balance</string>
+    <string name="monthly_income">Monthly Income</string>
+    <string name="monthly_expense">Monthly Expense</string>
+    <string name="privacy_show_amounts">Show Amounts</string>
+    <string name="privacy_hide_amounts">Hide Amounts</string>
+</resources>

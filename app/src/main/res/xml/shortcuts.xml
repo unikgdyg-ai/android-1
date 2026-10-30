@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_expense"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_new_expense_short"
+        android:shortcutLongLabel="@string/shortcut_new_expense_long">
+        <intent
+            android:action="ir.kharjyar.action.NEW_EXPENSE"
+            android:targetPackage="ir.kharjyar.app"
+            android:targetClass="ir.kharjyar.app.MainActivity" />
+    </shortcut>
+</shortcuts>
